@@ -57,16 +57,6 @@ struct mp_recstream {
     struct mp_recorder_sink sink;
 };
 
-static enum AVMediaType mp_to_av_stream_type(int type)
-{
-    switch (type) {
-    case STREAM_VIDEO: return AVMEDIA_TYPE_VIDEO;
-    case STREAM_AUDIO: return AVMEDIA_TYPE_AUDIO;
-    case STREAM_SUB:   return AVMEDIA_TYPE_SUBTITLE;
-    default:           return AVMEDIA_TYPE_UNKNOWN;
-    }
-}
-
 static int add_stream(struct mp_recorder *priv, struct sh_stream *sh)
 {
     enum AVMediaType av_type = mp_to_av_stream_type(sh->type);
@@ -87,41 +77,21 @@ static int add_stream(struct mp_recorder *priv, struct sh_stream *sh)
     if (!rst->av_stream)
         return -1;
 
-    AVCodecParameters *avp = rst->av_stream->codecpar;
-    struct mp_codec_params *c = sh->codec;
+    AVCodecParameters *avp = mp_codec_params_to_av(sh->codec);
+    if (!avp)
+        return -1;
 
-    if (c->lav_codecpar) {
-        // Just use what demux_lavf.c gives us.
-        if (avcodec_parameters_copy(avp, c->lav_codecpar) < 0)
-            return -1;
-    } else {
-        avp->codec_type = av_type;
-        avp->codec_id = mp_codec_to_av_codec_id(c->codec);
-        avp->codec_tag = c->codec_tag;
-        avp->extradata =
-            av_mallocz(c->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
-        if (!avp->extradata)
-            return -1;
-        avp->extradata_size = c->extradata_size;
-        memcpy(avp->extradata, c->extradata, c->extradata_size);
-
-        avp->width = c->disp_w;
-        avp->height = c->disp_h;
-        avp->bits_per_coded_sample = c->bits_per_coded_sample;
-
-        avp->sample_rate = c->samplerate;
-        avp->bit_rate = c->bitrate;
-        avp->block_align = c->block_align;
-        avp->bits_per_coded_sample = c->bits_per_coded_sample;
-        avp->channels = c->channels.num;
-
+    // Make libavformat/mux.c determine DTS from PTS reasonably correctly.
+    if (!avp->video_delay)
         avp->video_delay = 16;
-    }
 
     if (avp->codec_id == AV_CODEC_ID_NONE)
         return -1;
 
-    rst->av_stream->time_base = mp_get_codec_timebase(c);
+    if (avcodec_parameters_copy(rst->av_stream->codecpar, avp) < 0)
+        return -1;
+
+    rst->av_stream->time_base = mp_get_codec_timebase(sh->codec);
 
     MP_TARRAY_APPEND(priv, priv->streams, priv->num_streams, rst);
     return 0;
