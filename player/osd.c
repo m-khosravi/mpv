@@ -262,7 +262,13 @@ static void term_osd_print_status_lazy(struct MPContext *mpctx)
     if (mpctx->demuxer) {
         struct stream_cache_info info = {0};
         demux_stream_control(mpctx->demuxer, STREAM_CTRL_GET_CACHE_INFO, &info);
+<<<<<<< HEAD
         if (info.size > 0 || mpctx->demuxer->is_network) {
+||||||| merged common ancestors
+        if (info.size > 0) {
+=======
+        if (1 || info.size > 0) {
+>>>>>>> wip
             saddf(&line, " Cache: ");
 
             struct demux_ctrl_reader_state s = {.ts_duration = -1};
