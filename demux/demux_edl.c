@@ -235,13 +235,18 @@ static void build_timeline(struct timeline *tl, struct tl_parts *parts)
         tl->track_layout = NULL;
         stream_t *s = stream_create(parts->init_fragment_url, STREAM_READ,
                                     tl->cancel, tl->global);
-        if (s) {
+        if (s)
             tl->init_fragment = stream_read_complete(s, tl, 1000000);
-            stream_seek(s, 0);
-            tl->track_layout = demux_open(s, NULL, tl->global);
-        }
-        if (!tl->track_layout) {
+        free_stream(s);
+        if (!tl->init_fragment.len) {
             MP_ERR(tl, "Could not read init fragment.\n");
+            goto error;
+        }
+        s = open_memory_stream(tl->init_fragment.start, tl->init_fragment.len);
+        tl->track_layout = demux_open(s, NULL, tl->global);
+        if (!tl->track_layout) {
+            free_stream(s);
+            MP_ERR(tl, "Could not demux init fragment.\n");
             goto error;
         }
     }
