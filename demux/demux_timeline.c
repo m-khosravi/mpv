@@ -165,7 +165,7 @@ static void reopen_lazy_segments(struct demuxer *demuxer)
 
     struct demuxer_params params = {
         .init_fragment = p->tl->init_fragment,
-        .disable_cache = true,
+        //.disable_cache = true,
         .skip_lavf_probing = true,
     };
     p->current->d = demux_open_url(p->current->url, &params,
