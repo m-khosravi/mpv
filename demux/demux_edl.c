@@ -263,6 +263,7 @@ static void build_timeline(struct timeline *tl, struct tl_parts *parts)
                 MP_WARN(tl, "Segment %d has unknown duration.\n", n);
             if (part->offset_set)
                 MP_WARN(tl, "Offsets are ignored.\n");
+            tl->demuxer->is_network = true;
         } else {
             MP_VERBOSE(tl, "Opening segment %d...\n", n);
 
